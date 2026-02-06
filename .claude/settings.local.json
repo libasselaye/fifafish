@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest add button input label textarea select form dialog dropdown-menu tabs table card badge separator toast alert-dialog avatar scroll-area popover -y)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 30 npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(head:*)"
+    ]
+  }
+}
