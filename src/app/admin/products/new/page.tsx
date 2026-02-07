@@ -32,7 +32,7 @@ export default function NewProductPage() {
     price: '',
     image: '',
     stock: '',
-    featured: false,
+    featured: true,
   });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
