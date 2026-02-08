@@ -37,6 +37,7 @@ export function ProductCard({ id, nameEn, nameFr, category, price, images, stock
               alt={name}
               fill
               loading="lazy"
+              unoptimized={mainImage.startsWith('/uploads')}
               className="object-cover group-hover:scale-110 transition-transform duration-500"
               onError={() => setImageError(true)}
             />

@@ -95,6 +95,7 @@ export function ProductsTable({ products: initialProducts }: ProductsTableProps)
                       src={mainImage}
                       alt={product.name}
                       fill
+                      unoptimized={mainImage.startsWith('/uploads')}
                       className="object-cover"
                       onError={() => setImageErrors((prev) => ({ ...prev, [product.id]: true }))}
                     />

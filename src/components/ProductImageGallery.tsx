@@ -39,6 +39,7 @@ export function ProductImageGallery({ images, alt }: ProductImageGalleryProps) {
             src={currentImage}
             alt={`${alt} - ${selectedIndex + 1}`}
             fill
+            unoptimized={currentImage.startsWith('/uploads')}
             className="object-cover"
             onError={() => setImageErrors((prev) => ({ ...prev, [selectedIndex]: true }))}
           />
@@ -93,6 +94,7 @@ export function ProductImageGallery({ images, alt }: ProductImageGalleryProps) {
                   src={img}
                   alt={`${alt} - miniature ${index + 1}`}
                   fill
+                  unoptimized={img.startsWith('/uploads')}
                   className="object-cover"
                   onError={() => setImageErrors((prev) => ({ ...prev, [index]: true }))}
                 />
