@@ -65,7 +65,7 @@ model Product {
   descriptionFr String @db.Text
   category    String
   price       Float
-  image       String
+  images      String[]
   stock       Int      @default(0)
   featured    Boolean  @default(true)
   createdAt   DateTime @default(now())

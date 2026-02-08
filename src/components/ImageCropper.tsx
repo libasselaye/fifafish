@@ -63,7 +63,7 @@ export function ImageCropper({ image, onCropComplete, onCancel, aspectRatio = 4 
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="relative w-full h-[400px] bg-gray-100 rounded-lg overflow-hidden">
+          <div className="relative w-full h-[500px] bg-gray-900 rounded-lg overflow-hidden">
             <Cropper
               image={image}
               crop={crop}
@@ -72,6 +72,10 @@ export function ImageCropper({ image, onCropComplete, onCancel, aspectRatio = 4 
               onCropChange={onCropChange}
               onZoomChange={onZoomChange}
               onCropComplete={onCropAreaChange}
+              minZoom={0.1}
+              maxZoom={5}
+              objectFit="contain"
+              restrictPosition={false}
             />
           </div>
 
@@ -82,9 +86,9 @@ export function ImageCropper({ image, onCropComplete, onCancel, aspectRatio = 4 
               <Slider
                 value={[zoom]}
                 onValueChange={(value) => setZoom(value[0])}
-                min={1}
-                max={3}
-                step={0.1}
+                min={0.1}
+                max={5}
+                step={0.01}
                 className="flex-1"
               />
               <span className="text-sm text-gray-600 w-12 text-right">{Math.round(zoom * 100)}%</span>
@@ -138,7 +142,7 @@ async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<File> {
       }
       const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
       resolve(file);
-    }, 'image/jpeg', 0.95);
+    }, 'image/jpeg', 1);
   });
 }
 

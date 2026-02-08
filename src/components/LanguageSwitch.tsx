@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const locales = ['en', 'fr', 'es', 'zh'] as const;
-const defaultLocale = 'en';
+const defaultLocale = 'fr';
 type Locale = (typeof locales)[number];
 
 const languageOptions: { code: Locale; label: string; flag: string }[] = [

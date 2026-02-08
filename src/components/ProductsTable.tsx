@@ -34,7 +34,7 @@ interface Product {
   category: string;
   price: number;
   stock: number;
-  image: string;
+  images: string[];
   featured: boolean;
 }
 
@@ -57,25 +57,14 @@ export function ProductsTable({ products: initialProducts }: ProductsTableProps)
       });
 
       if (response.ok) {
-        toast({
-          title: "Succès",
-          description: "Le produit a été supprimé avec succès",
-        });
+        toast({ title: "Succès", description: "Le produit a été supprimé avec succès" });
         setProducts(products.filter(p => p.id !== id));
         router.refresh();
       } else {
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer le produit",
-          variant: "destructive"
-        });
+        toast({ title: "Erreur", description: "Impossible de supprimer le produit", variant: "destructive" });
       }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression",
-        variant: "destructive"
-      });
+    } catch {
+      toast({ title: "Erreur", description: "Une erreur est survenue lors de la suppression", variant: "destructive" });
     } finally {
       setDeletingId(null);
     }
@@ -86,87 +75,95 @@ export function ProductsTable({ products: initialProducts }: ProductsTableProps)
       <TableHeader>
         <TableRow>
           <TableHead>Image</TableHead>
-          <TableHead>Name</TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Price</TableHead>
+          <TableHead>Nom</TableHead>
+          <TableHead>Catégorie</TableHead>
+          <TableHead>Prix</TableHead>
           <TableHead>Stock</TableHead>
-          <TableHead>Featured</TableHead>
+          <TableHead>Vedette</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {products.map((product) => (
-          <TableRow key={product.id}>
-            <TableCell>
-              <div className="relative w-16 h-16 rounded overflow-hidden bg-gray-100">
-                {!imageErrors[product.id] ? (
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    onError={() => setImageErrors((prev) => ({ ...prev, [product.id]: true }))}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
-                    <Fish className="w-8 h-8 text-blue-400" />
-                  </div>
-                )}
-              </div>
-            </TableCell>
-            <TableCell className="font-medium">{product.name}</TableCell>
-            <TableCell>{product.category}</TableCell>
-            <TableCell>${product.price}/ton</TableCell>
-            <TableCell>
-              <span className={product.stock < 10 ? 'text-orange-600 font-semibold' : ''}>
-                {product.stock}
-              </span>
-            </TableCell>
-            <TableCell>
-              {product.featured && <Badge className="bg-blue-500">Featured</Badge>}
-            </TableCell>
-            <TableCell>
-              <div className="flex gap-2">
-                <Link href={`/admin/products/${product.id}/edit`}>
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                </Link>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={deletingId === product.id}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
+        {products.map((product) => {
+          const mainImage = product.images?.[0];
+          return (
+            <TableRow key={product.id}>
+              <TableCell>
+                <div className="relative w-16 h-16 rounded overflow-hidden bg-gray-100">
+                  {mainImage && !imageErrors[product.id] ? (
+                    <Image
+                      src={mainImage}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      onError={() => setImageErrors((prev) => ({ ...prev, [product.id]: true }))}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+                      <Fish className="w-8 h-8 text-blue-400" />
+                    </div>
+                  )}
+                  {product.images?.length > 1 && (
+                    <span className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1 rounded-tl">
+                      +{product.images.length - 1}
+                    </span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="font-medium">{product.name}</TableCell>
+              <TableCell>{product.category}</TableCell>
+              <TableCell>${product.price}/ton</TableCell>
+              <TableCell>
+                <span className={product.stock < 10 ? 'text-orange-600 font-semibold' : ''}>
+                  {product.stock}
+                </span>
+              </TableCell>
+              <TableCell>
+                {product.featured && <Badge className="bg-blue-500">Vedette</Badge>}
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <Link href={`/admin/products/${product.id}/edit`}>
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-4 w-4 mr-1" />
+                      Modifier
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Êtes-vous sûr de vouloir supprimer le produit "{product.name}" ?
-                        Cette action est irréversible.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDelete(product.id)}
-                        className="bg-red-600 hover:bg-red-700"
+                  </Link>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={deletingId === product.id}
                       >
+                        <Trash2 className="h-4 w-4 mr-1" />
                         Supprimer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Êtes-vous sûr de vouloir supprimer le produit &quot;{product.name}&quot; ?
+                          Cette action est irréversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(product.id)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );

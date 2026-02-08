@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { prisma } from '@/lib/prisma';
 import { ArrowLeft } from 'lucide-react';
+import { ProductImageGallery } from '@/components/ProductImageGallery';
 
 export default async function ProductDetailPage({
   params,
@@ -25,6 +25,7 @@ export default async function ProductDetailPage({
     notFound();
   }
 
+  const name = locale === 'fr' ? product.nameFr : product.nameEn;
   const description = locale === 'fr' ? product.descriptionFr : product.descriptionEn;
 
   return (
@@ -36,17 +37,10 @@ export default async function ProductDetailPage({
         </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="relative h-96 rounded-lg overflow-hidden">
-            <Image
-              src={product.image}
-              alt={product.name}
-              fill
-              className="object-cover"
-            />
-          </div>
+          <ProductImageGallery images={product.images} alt={name} />
 
           <div>
-            <h1 className="text-4xl font-bold mb-4">{product.name}</h1>
+            <h1 className="text-4xl font-bold mb-4">{name}</h1>
             <div className="flex items-center gap-4 mb-6">
               <Badge className="text-lg">{product.category}</Badge>
               {product.stock > 0 ? (

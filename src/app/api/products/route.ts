@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
         descriptionFr: body.descriptionFr,
         category: body.category,
         price: body.price,
-        image: body.image,
+        images: body.images,
         stock: body.stock,
         featured: body.featured || false,
       },

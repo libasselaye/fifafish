@@ -56,10 +56,11 @@ export default async function ProductsPage() {
                   >
                     <ProductCard
                       id={product.id}
-                      name={product.name}
+                      nameEn={product.nameEn}
+                      nameFr={product.nameFr}
                       category={product.category}
                       price={product.price}
-                      image={product.image}
+                      images={product.images}
                       stock={product.stock}
                     />
                   </div>

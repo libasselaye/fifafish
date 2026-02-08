@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { ArrowLeft, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { ImageCropper } from '@/components/ImageCropper';
 
@@ -21,7 +21,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string>('');
+  const [images, setImages] = useState<{ url: string; preview: string }[]>([]);
   const [imageToCrop, setImageToCrop] = useState<string>('');
   const [showCropper, setShowCropper] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,7 +32,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     descriptionFr: '',
     category: '',
     price: '',
-    image: '',
     stock: '',
     featured: false,
   });
@@ -49,20 +48,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           descriptionFr: data.descriptionFr,
           category: data.category,
           price: data.price.toString(),
-          image: data.image,
           stock: data.stock.toString(),
           featured: data.featured,
         });
-        setImagePreview(data.image);
+        const productImages = data.images || [];
+        setImages(productImages.map((url: string) => ({ url, preview: url })));
         setLoading(false);
       })
-      .catch((error) => {
-        console.error('Failed to fetch product:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger le produit",
-          variant: "destructive"
-        });
+      .catch(() => {
+        toast({ title: "Erreur", description: "Impossible de charger le produit", variant: "destructive" });
         setLoading(false);
       });
   }, [id, toast]);
@@ -71,13 +65,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Charger l'image pour le cropper
     const reader = new FileReader();
     reader.onloadend = () => {
       setImageToCrop(reader.result as string);
       setShowCropper(true);
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleCropComplete = async (croppedFile: File) => {
@@ -85,43 +79,31 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     setUploading(true);
 
     try {
-      // Prévisualiser l'image recadrée
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(croppedFile);
+      const previewReader = new FileReader();
+      const previewPromise = new Promise<string>((resolve) => {
+        previewReader.onloadend = () => resolve(previewReader.result as string);
+        previewReader.readAsDataURL(croppedFile);
+      });
 
-      // Uploader l'image recadrée
-      const formData = new FormData();
-      formData.append('file', croppedFile);
+      const uploadForm = new FormData();
+      uploadForm.append('file', croppedFile);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
+        body: uploadForm,
       });
 
       if (response.ok) {
         const data = await response.json();
-        setFormData((prev) => ({ ...prev, image: data.url }));
-        toast({
-          title: "Succès",
-          description: "Image uploadée avec succès",
-        });
+        const preview = await previewPromise;
+        setImages((prev) => [...prev, { url: data.url, preview }]);
+        toast({ title: "Succès", description: "Image uploadée avec succès" });
       } else {
         const error = await response.json();
-        toast({
-          title: "Erreur",
-          description: error.error || "Erreur lors de l'upload de l'image",
-          variant: "destructive"
-        });
+        toast({ title: "Erreur", description: error.error || "Erreur lors de l'upload", variant: "destructive" });
       }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Erreur lors de l'upload de l'image",
-        variant: "destructive"
-      });
+    } catch {
+      toast({ title: "Erreur", description: "Erreur lors de l'upload de l'image", variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -132,13 +114,24 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     setImageToCrop('');
   };
 
-  const removeImage = () => {
-    setImagePreview('');
-    setFormData({ ...formData, image: '' });
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= images.length) return;
+    const newImages = [...images];
+    [newImages[index], newImages[targetIndex]] = [newImages[targetIndex], newImages[index]];
+    setImages(newImages);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (images.length === 0) {
+      toast({ title: "Erreur", description: "Veuillez ajouter au moins une image", variant: "destructive" });
+      return;
+    }
     setSaving(true);
 
     try {
@@ -149,233 +142,150 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           ...formData,
           name: formData.nameEn,
           description: formData.descriptionEn,
+          images: images.map((img) => img.url),
           price: parseFloat(formData.price),
           stock: parseInt(formData.stock),
         }),
       });
 
       if (response.ok) {
-        toast({
-          title: "Succès",
-          description: "Le produit a été mis à jour avec succès",
-        });
+        toast({ title: "Succès", description: "Le produit a été mis à jour avec succès" });
         router.push('/admin/products');
       } else {
-        toast({
-          title: "Erreur",
-          description: "Impossible de mettre à jour le produit",
-          variant: "destructive"
-        });
+        toast({ title: "Erreur", description: "Impossible de mettre à jour le produit", variant: "destructive" });
       }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour",
-        variant: "destructive"
-      });
+    } catch {
+      toast({ title: "Erreur", description: "Une erreur est survenue", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Chargement...</div>;
   }
 
   return (
     <div>
       <Link href="/admin/products" className="inline-flex items-center text-blue-600 mb-6">
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Products
+        Retour aux produits
       </Link>
 
-      <h1 className="text-3xl font-bold mb-8">Edit Product</h1>
+      <h1 className="text-3xl font-bold mb-8">Modifier le produit</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Product Details</CardTitle>
+          <CardTitle>Détails du produit</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="nameEn">Name (English)</Label>
-              <Input
-                id="nameEn"
-                value={formData.nameEn}
-                onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                required
-              />
+              <Label htmlFor="nameEn">Nom (Anglais)</Label>
+              <Input id="nameEn" value={formData.nameEn} onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })} required />
             </div>
 
             <div>
-              <Label htmlFor="nameFr">Name (French)</Label>
-              <Input
-                id="nameFr"
-                value={formData.nameFr}
-                onChange={(e) => setFormData({ ...formData, nameFr: e.target.value })}
-                required
-              />
+              <Label htmlFor="nameFr">Nom (Français)</Label>
+              <Input id="nameFr" value={formData.nameFr} onChange={(e) => setFormData({ ...formData, nameFr: e.target.value })} required />
             </div>
 
             <div>
-              <Label htmlFor="descriptionEn">Description (English)</Label>
-              <Textarea
-                id="descriptionEn"
-                value={formData.descriptionEn}
-                onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })}
-                rows={4}
-                required
-              />
+              <Label htmlFor="descriptionEn">Description (Anglais)</Label>
+              <Textarea id="descriptionEn" value={formData.descriptionEn} onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })} rows={4} required />
             </div>
 
             <div>
-              <Label htmlFor="descriptionFr">Description (French)</Label>
-              <Textarea
-                id="descriptionFr"
-                value={formData.descriptionFr}
-                onChange={(e) => setFormData({ ...formData, descriptionFr: e.target.value })}
-                rows={4}
-                required
-              />
+              <Label htmlFor="descriptionFr">Description (Français)</Label>
+              <Textarea id="descriptionFr" value={formData.descriptionFr} onChange={(e) => setFormData({ ...formData, descriptionFr: e.target.value })} rows={4} required />
             </div>
 
             <div>
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                required
-              />
+              <Label htmlFor="category">Catégorie</Label>
+              <Input id="category" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required />
             </div>
 
             <div>
-              <Label htmlFor="price">Price ($/ton)</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                required
-              />
+              <Label htmlFor="price">Prix ($/tonne)</Label>
+              <Input id="price" type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} required />
             </div>
 
             <div>
-              <Label htmlFor="image">Image du produit</Label>
+              <Label>Images du produit</Label>
 
-              {imagePreview ? (
-                <div className="mt-2 relative">
-                  <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-gray-200">
-                    <Image
-                      src={imagePreview}
-                      alt="Preview"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <label
-                      htmlFor="image-upload-edit"
-                      className="cursor-pointer"
-                    >
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        asChild
-                      >
-                        <span>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Changer l'image
+              {images.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                  {images.map((img, index) => (
+                    <div key={index} className="relative group border-2 border-gray-200 rounded-lg overflow-hidden">
+                      <div className="relative h-40">
+                        <Image src={img.preview} alt={`Image ${index + 1}`} fill className="object-cover" />
+                      </div>
+                      {index === 0 && (
+                        <span className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">
+                          Principale
                         </span>
-                      </Button>
-                    </label>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={removeImage}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Supprimer
-                    </Button>
-                  </div>
-                  <Input
-                    id="image-upload-edit"
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    disabled={uploading}
-                  />
-                </div>
-              ) : (
-                <div className="mt-2">
-                  <label
-                    htmlFor="image-upload"
-                    className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-12 h-12 mb-4 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Cliquez pour uploader</span> ou glissez-déposez
-                      </p>
-                      <p className="text-xs text-gray-500">PNG, JPG, WEBP ou GIF (MAX. 5MB)</p>
+                      )}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button type="button" variant="destructive" size="icon" className="h-7 w-7" onClick={() => removeImage(index)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      {images.length > 1 && (
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {index > 0 && (
+                            <Button type="button" variant="secondary" size="icon" className="h-7 w-7" onClick={() => moveImage(index, 'left')}>
+                              <ChevronLeft className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {index < images.length - 1 && (
+                            <Button type="button" variant="secondary" size="icon" className="h-7 w-7" onClick={() => moveImage(index, 'right')}>
+                              <ChevronRight className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <Input
-                      id="image-upload"
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      disabled={uploading}
-                    />
-                  </label>
-                  {uploading && (
-                    <p className="mt-2 text-sm text-gray-600">Upload en cours...</p>
-                  )}
+                  ))}
                 </div>
               )}
 
-              {/* Champ caché pour l'URL de l'image */}
-              <Input
-                type="hidden"
-                value={formData.image}
-                required
-              />
+              <div className="mt-2">
+                <label
+                  htmlFor="image-upload"
+                  className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-10 h-10 mb-3 text-gray-400" />
+                    <p className="mb-1 text-sm text-gray-500">
+                      <span className="font-semibold">Cliquez pour ajouter une image</span>
+                    </p>
+                    <p className="text-xs text-gray-500">PNG, JPG, WEBP ou GIF (MAX. 5MB)</p>
+                    {images.length > 0 && (
+                      <p className="text-xs text-blue-600 mt-1">{images.length} image(s) ajoutée(s)</p>
+                    )}
+                  </div>
+                  <Input id="image-upload" type="file" className="hidden" accept="image/*" onChange={handleImageSelect} disabled={uploading} />
+                </label>
+                {uploading && <p className="mt-2 text-sm text-gray-600">Upload en cours...</p>}
+              </div>
             </div>
 
             <div>
               <Label htmlFor="stock">Stock</Label>
-              <Input
-                id="stock"
-                type="number"
-                value={formData.stock}
-                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                required
-              />
+              <Input id="stock" type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: e.target.value })} required />
             </div>
 
             <div className="flex items-center space-x-2">
-              <Checkbox
-                id="featured"
-                checked={formData.featured}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, featured: checked as boolean })
-                }
-              />
-              <Label htmlFor="featured">Featured Product</Label>
+              <Checkbox id="featured" checked={formData.featured} onCheckedChange={(checked) => setFormData({ ...formData, featured: checked as boolean })} />
+              <Label htmlFor="featured">Produit vedette</Label>
             </div>
 
             <div className="flex gap-4">
               <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
               </Button>
               <Link href="/admin/products">
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
+                <Button type="button" variant="outline">Annuler</Button>
               </Link>
             </div>
           </form>
@@ -383,12 +293,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       </Card>
 
       {showCropper && imageToCrop && (
-        <ImageCropper
-          image={imageToCrop}
-          onCropComplete={handleCropComplete}
-          onCancel={handleCropCancel}
-          aspectRatio={4 / 3}
-        />
+        <ImageCropper image={imageToCrop} onCropComplete={handleCropComplete} onCancel={handleCropCancel} aspectRatio={4 / 3} />
       )}
     </div>
   );
