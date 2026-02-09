@@ -11,7 +11,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { ArrowLeft, Upload, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import Image from 'next/image';
 import { ImageCropper } from '@/components/ImageCropper';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -218,7 +217,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   {images.map((img, index) => (
                     <div key={index} className="relative group border-2 border-gray-200 rounded-lg overflow-hidden">
                       <div className="relative h-40">
-                        <Image src={img.preview} alt={`Image ${index + 1}`} fill className="object-cover" />
+                        <img src={img.preview} alt={`Image ${index + 1}`} className="w-full h-full object-cover" />
                       </div>
                       {index === 0 && (
                         <span className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded font-medium">

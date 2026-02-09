@@ -87,6 +87,7 @@ export default function AdminLoginWrapper() {
     // Simple authentication check
     if (email === 'admin@fifafish.com' && password === 'Admin123!') {
       localStorage.setItem('admin_logged_in', 'true');
+      localStorage.setItem('admin_session_time', Date.now().toString());
       router.push('/admin/dashboard');
     } else {
       setError('Invalid credentials');

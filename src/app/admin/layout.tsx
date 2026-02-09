@@ -19,19 +19,37 @@ export default function AdminLayout({
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
+    const SESSION_DURATION = 5 * 60 * 1000; // 5 minutes
+
     const checkAuth = () => {
       const isLoggedIn = localStorage.getItem('admin_logged_in') === 'true';
+      const sessionTime = localStorage.getItem('admin_session_time');
+
+      if (isLoggedIn && sessionTime) {
+        const elapsed = Date.now() - parseInt(sessionTime, 10);
+        if (elapsed > SESSION_DURATION) {
+          // Session expirée
+          localStorage.removeItem('admin_logged_in');
+          localStorage.removeItem('admin_session_time');
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          if (!isLoginPage) router.push('/admin/login');
+          return;
+        }
+        // Renouveler la session à chaque navigation
+        localStorage.setItem('admin_session_time', Date.now().toString());
+      }
+
       setIsAuthenticated(isLoggedIn);
       setIsLoading(false);
 
-      // Rediriger vers login si non authentifié et pas déjà sur la page de login
       if (!isLoggedIn && !isLoginPage) {
         router.push('/admin/login');
       }
     };
 
     checkAuth();
-  }, [isLoginPage, router]);
+  }, [isLoginPage, router, pathname]);
 
   // Si on est sur la page de login, afficher uniquement le contenu
   if (isLoginPage) {
@@ -65,7 +83,7 @@ export default function AdminLayout({
         </div>
 
         <nav className="space-y-2">
-          <Link href="/en">
+          <Link href="/fr">
             <Button variant="ghost" className="w-full justify-start text-white hover:bg-gray-800">
               <Home className="h-4 w-4 mr-2" />
               Retour au site
